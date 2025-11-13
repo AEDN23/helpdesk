@@ -9,6 +9,59 @@ include "header.php";
     td:nth-child(13) {
         width: 1000px;
     }
+
+    /* Style untuk foto thumbnail */
+    .foto-thumbnail {
+        max-width: 80px;
+        max-height: 80px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        padding: 2px;
+        cursor: pointer;
+        transition: transform 0.2s;
+    }
+
+    .foto-thumbnail:hover {
+        transform: scale(2);
+        z-index: 1000;
+        position: relative;
+        background: white;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+    }
+
+    /* Style untuk status */
+    .status-new {
+        background-color: #fff3cd;
+        color: #856404;
+    }
+
+    .status-process {
+        background-color: #cce7ff;
+        color: #004085;
+
+    }
+
+    .status-pending {
+        background-color: #ffeaa7;
+        color: #2d3436;
+    }
+
+    .status-cancel {
+        background-color: #f8d7da;
+        color: #721c24;
+    }
+
+    .status-done {
+        background-color: #d4edda;
+        color: #155724;
+
+
+    }
+
+    .status-default {
+        background-color: #f8f9fa;
+        color: #6c757d;
+    }
 </style>
 <div class="container">
     <div class="page-header">
@@ -109,15 +162,40 @@ include "header.php";
 
                                         // Jika $val['tt_updated'] null atau kosong, tampilkan kosong
 
-                                        echo "-"; // Atau Anda bisa tidak menampilkan apa-apa
+                                        echo "-"; // jika tidak ada foto menampilkan kosong
 
                                     }
 
                                     ?></td>
                                 <td><?php echo $val['tt_duration']; ?></td>
                                 <td><?php echo ($val['tt_problem_solving']); ?></td>
-                                <td><canvas></canvas></td>
-                                <td><canvas></canvas></td>
+
+                                <!-- KOLOM BEFORE - TAMPILKAN FOTO BEFORE -->
+                                <td style="text-align: center;">
+                                    <?php
+                                    if (!empty($val['tt_foto_before'])) {
+                                        echo '<a href="' . $val['tt_foto_before'] . '" target="_blank" title="Klik untuk lihat ukuran penuh">';
+                                        echo '<img src="' . $val['tt_foto_before'] . '" alt="Foto Before" class="foto-thumbnail">';
+                                        echo '</a>';
+                                    } else {
+                                        echo '-';
+                                    }
+                                    ?>
+                                </td>
+
+                                <!-- KOLOM AFTER -->
+                                <td style="text-align: center;">
+                                    <?php
+                                    if (!empty($val['tt_foto_after'])) {
+                                        echo '<a href="' . $val['tt_foto_after'] . '" target="_blank" title="Klik untuk lihat ukuran penuh">';
+                                        echo '<img src="' . $val['tt_foto_after'] . '" alt="Foto After" class="foto-thumbnail">';
+                                        echo '</a>';
+                                    } else {
+                                        echo '-';
+                                    }
+                                    ?>
+                                </td>
+
                                 <td>
                                     <a class='btn btn-default' data-toggle='modal' data-target='#ed-<?php echo $key; ?>'>Option</a>
                                 </td>
@@ -127,14 +205,14 @@ include "header.php";
 
                         <div id="ed-<?php echo $key; ?>" class="modal fade" role="dialog">
                             <div class="modal-dialog" style="background-color:#FFFFFF;">
-                                <form class="modal-content" action="function.php" method="POST">
+                                <form class="modal-content" action="function.php" method="POST" enctype="multipart/form-data">
                                     <div class="modal-header">
                                         <button type="button" class="close" data-dismiss="modal">&times;</button>
                                         <h4 class="modal-title">Change status <?php echo $val['tt_subject']; ?></h4>
                                     </div>
                                     <div class="modal-body">
                                         <div class="row">
-                                            <div class="col-md-8 form-group">
+                                            <div class="col-md-12 form-group">
                                                 <label for="">Status:</label>
                                                 <select name="status" class="form-control" required="true">
                                                     <option value="<?php echo $val['tt_status']; ?>">SELECTED : <?php echo $val['tt_status']; ?></option>
@@ -146,18 +224,39 @@ include "header.php";
                                                     <option value="DELETE">DELETE</option>
                                                 </select>
                                                 <br>
-                                                <label for=""> Problem Solving:</label>
-                                                <textarea class="form-control" name="problem-solving" placeholder="Problem solving"></textarea>
+                                                <label for="">Problem Solving:</label>
+                                                <textarea class="form-control" name="problem-solving" placeholder="Problem solving" rows="4"><?php echo $val['tt_problem_solving']; ?></textarea>
                                                 <input type="hidden" name="id" value="<?php echo $val['tt_id']; ?>">
 
                                                 <br>
-                                                <label for="">Foto After:</label>
-                                                <input type="file" name="tt_foto_after" class="form-control">
+                                                <label for="">Foto After (Max 2MB):</label>
+                                                <input type="file" name="tt_foto_after" class="form-control" accept="image/*">
+                                                <small class="text-muted">Format: JPG, PNG, GIF</small>
+
+                                                <?php
+                                                // Tampilkan foto before sebagai referensi
+                                                if (!empty($val['tt_foto_before'])) {
+                                                    echo '<div class="mt-3">';
+                                                    echo '<label>Foto Before (Referensi):</label><br>';
+                                                    echo '<img src="' . $val['tt_foto_before'] . '" alt="Foto Before" style="max-width: 200px; height: auto; border: 1px solid #ddd; border-radius: 4px; padding: 5px;">';
+                                                    echo '</div>';
+                                                }
+
+                                                // Tampilkan foto after yang sudah ada (jika ada)
+                                                if (!empty($val['tt_foto_after'])) {
+                                                    echo '<div class="mt-3">';
+                                                    echo '<label>Foto After (Saat ini):</label><br>';
+                                                    echo '<img src="' . $val['tt_foto_after'] . '" alt="Foto After" style="max-width: 200px; height: auto; border: 1px solid #ddd; border-radius: 4px; padding: 5px;">';
+                                                    echo '<br><small class="text-muted">Upload foto baru untuk mengganti</small>';
+                                                    echo '</div>';
+                                                }
+                                                ?>
                                             </div>
                                         </div>
                                     </div>
                                     <div class="modal-footer">
                                         <button type="submit" name="update-tl" class="btn btn-primary">Update</button>
+                                        <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
                                     </div>
                                 </form>
                             </div>

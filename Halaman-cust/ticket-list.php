@@ -370,12 +370,12 @@ if (!session_me()) {
     <br>
     <br>
 
-<?php 
-var_dump($_SESSION);
-?>
-<br>
-<br>
-<br>
+    <?php
+    var_dump($_SESSION);
+    ?>
+    <br>
+    <br>
+    <br>
     <footer>&copy; PT Elastomix Indonesia | HELPDESK</footer>
 </body>
 

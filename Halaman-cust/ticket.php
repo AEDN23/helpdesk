@@ -1,222 +1,99 @@
 <?php
-require_once 'function.php';
-require_once 'func.php';
-// include 'header.php';
-
-
-if (isset($_GET['export']) && $_GET['export'] == 'excel') {
-    // Include database connection and any necessary functions
-
-    // Get the parameters
-    $k_start = Q_mres($_GET['start']);
-    $k_end = Q_mres($_GET['end']);
-    $q_status = "AND tt_status!='DELETE'";
-
-    if (isset($_GET['status']) && $_GET['status'] !== "ALL") {
-        $k_status = Q_mres($_GET['status']);
-        $q_status = "AND tt_status='$k_status'";
-    }
-
-    // Prepare the SQL query
-    $sql = "
-        SELECT * FROM tbl_ticket a
-        LEFT JOIN tbl_user b ON b.tu_id=a.tt_user
-        LEFT JOIN tbl_department c ON c.td_id=a.tt_department
-        LEFT JOIN tbl_service d ON d.ts_id=a.tt_service
-        LEFT JOIN tbl_priority e ON e.tp_id=a.tt_priority
-        WHERE (DATE_FORMAT(tt_created, '%Y-%m-%d') BETWEEN '$k_start' AND '$k_end') " . $q_status . " 
-        ORDER BY tt_id DESC
-    ";
-
-    $data = Q_array($sql);
-
-    // Set headers for Excel file
-    header('Content-Type: application/vnd.ms-excel');
-    header('Content-Disposition: attachment; filename="report.xls"');
-    header('Pragma: no-cache');
-    header('Expires: 0');
-
-    // Output the table headers
-    echo "NO\tFULL NAME\tSUBJECT\tSERVICE\tDEPARTMENT\tPRIORITY\tSTATUS\tTIME\n";
-
-    // Output the data
-    if (!empty($data)) {
-        foreach ($data as $key => $val) {
-            echo ($key + 1) . "\t" . $val['tu_full_name'] . " <br> " . $val['tu_email'] . "\t" . $val['tt_subject'] . "\t" . $val['ts_name'] . "\t" . $val['td_name'] . "\t" . $val['tp_name'] . "\t" . $val['tt_status'] . "\t" . date("d F Y H:i:s A", strtotime($val['tt_created'])) . "\n";
-        }
-    } else {
-        echo "No data!\n";
-    }
-    exit; // Stop further execution
-}
+require_once("func.php");
+include "header.php";
 ?>
 
-
-<!DOCTYPE html>
-<html lang="en">
-
-<head>
-    <?php
-    session_start();
-    if ($_SESSION['datauser']['tu_role'] !== 'customer') {
-        header('Location: index.php');
-        exit;
+<style>
+    /* style untuk melebarkan table message dan problem solving disini */
+    td:nth-child(8),
+    td:nth-child(13) {
+        width: 1000px;
     }
 
-    ?>
-    <meta charset="utf-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>HELPDESK</title>
-    <link rel="shortcut icon" href="images/icon.png">
-    <link href="https://cdn.jsdelivr.net/npm/simple-datatables@7.1.2/dist/style.min.css" rel="stylesheet" />
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
-    <link href="css/styles.css" rel="stylesheet" />
-    <link rel="stylesheet" href="css/bootstrap.min.css">
-    <script src="https://use.fontawesome.com/releases/v6.3.0/js/all.js" crossorigin="anonymous"></script>
-    <style>
-        footer {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            width: 100%;
-            background-color: #222;
-            /* Sesuaikan warna background */
-            color: #fff;
-            /* Sesuaikan warna teks */
-            text-align: center;
-            /* Untuk menyelaraskan teks di tengah */
-            padding: 2px 0;
-            /* Berikan padding */
-            z-index: 999;
-            /* Supaya selalu di atas elemen lain */
-        }
+    /* Style untuk foto thumbnail */
+    .foto-thumbnail {
+        max-width: 80px;
+        max-height: 80px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        padding: 2px;
+        cursor: pointer;
+        transition: transform 0.2s;
+    }
 
-        .status-new {
+    .foto-thumbnail:hover {
+        transform: scale(2);
+        z-index: 1000;
+        position: relative;
+        background: white;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+    }
 
-            color: orange;
-            font-weight: bold;
-        }
+    /* Style untuk status */
+    .status-new {
+        background-color: #fff3cd;
+        color: #856404;
+    }
 
-        .status-process {
+    .status-process {
+        background-color: #cce7ff;
+        color: #004085;
 
-            color: blue;
-            font-weight: bold;
-        }
+    }
 
+    .status-pending {
+        background-color: #ffeaa7;
+        color: #2d3436;
+    }
 
-        .status-pending {
+    .status-cancel {
+        background-color: #f8d7da;
+        color: #721c24;
+    }
 
-            color: black;
-            font-weight: bold;
-
-        }
-
-        .status-cancel {
-
-            color: red;
-            font-weight: bold;
-
-        }
-
-        .status-done {
-
-            color: green;
-            font-weight: bold;
-
-        }
-
-        td:nth-child(7),
-        td:nth-child(13) {
-            width: 100px;
-        }
-    </style>
+    .status-done {
+        background-color: #d4edda;
+        color: #155724;
 
 
+    }
 
-    <style type="text/css" media="print">
-        @page {
-            size: auto;
-            /* auto is the current printer page size */
-            margin: 0mm;
-            /* this affects the margin in the printer settings */
-        }
+    .status-default {
+        background-color: #f8f9fa;
+        color: #6c757d;
+    }
+</style>
+<div class="container">
+    <div class="page-header">
+        <h1>Ticket List</h1>
+    </div>
 
-        .print-hide {
-            display: none;
-        }
-
-        .print-header {
-            font-size: 15px;
-        }
-
-        .print-container {
-            font-size: 10px;
-        }
-    </style>
-
-
-</head>
-
-<body class="sb-nav-fixed">
-    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
-        <div class="container">
-            <a class="navbar-brand" href="home.php ">HELPDESK</a>
-            <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            <div class="collapse navbar-collapse justify-content-center" id="navbarNav">
-                <ul class="navbar-nav">
-                    <li class="nav-item">
-                        <a class="nav-link" href="home.php">Home</a>
-                    </li>
-
-                    <li class="nav-item">
-                        <a class="nav-link" href="ticket.php">List Ticket</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="open-ticket.php">Open Ticket</a>
-                    </li>
-                </ul>
-            </div>
-            <a href="logout.php"> <button class="btn btn-outline-light my-2 my-sm-0" type="submit">Logout</button></a>
-        </div>
-    </nav>
-
-
-
-
-
-    <main>
-        <div class="container-fluid px-4">
-            <div class="page-header">
-                <h1>Ticket List</h1>
-            </div>
-            <div class="card mb-4">
-                <div class="card-body">
-                    <table id="datatablesSimple" class="table table-hover table-striped table-bordered" width="100%" style="font-size: 1rem;" cellspacing="0">
-                        <thead>
-                            <tr>
-                                <th>NO</th>
-                                <th>HELP</th>
-                                <th>FULL NAME</th>
-                                <th>SUBJECT</th>
-                                <!-- <th>SERVICE</th> -->
-                                <th>DEPARTMENT</th>
-                                <!-- <th>PRIORITY</th> -->
-                                <th>STATUS</th>
-                                <!-- <th>TIME START</th>
-                                <th>TIME FINISH</th> -->
-
-
-                                <th>DURATION</th>
-                                <th style="min-width: 300px;">MESSAGE</th>
-                                <th style="min-width: 300px;">PROBLEM SOLVING</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <?php
-                            $sql = "
+    <div class="card mb-4 mt-2">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover table-striped table-bordered" id="dataTable" width="100%" cellspacing="0" style="font-size: 1rem;">
+                    <thead class="text-center">
+                        <tr style="font-weight:bold;text-align: center;">
+                            <td>NO</td>
+                            <td>HELP</td>
+                            <td>FULL NAME</td>
+                            <td>SUBJECT</td>
+                            <td>SERVICE</td>
+                            <td>DEPARTMENT</td>
+                            <td>PRIORITY</td>
+                            <td>MESSAGE</td>
+                            <td>STATUS</td>
+                            <td>TIME START</td>
+                            <td>TIME FINISH</td>
+                            <td>DURATION</td>
+                            <td>PROBLEM SOLVING</td>
+                            <td>BEFORE</td>
+                            <td>AFTER</td>
+                            <td>ACTION</td>
+                        </tr>
+                    </thead>
+                    <?php
+                    $sql = "
                         SELECT * FROM tbl_ticket a 
                         LEFT JOIN tbl_user b ON b.tu_id=a.tt_user
                         LEFT JOIN tbl_department c ON c.td_id=a.tt_department
@@ -225,57 +102,179 @@ if (isset($_GET['export']) && $_GET['export'] == 'excel') {
                         WHERE tt_status!='DELETE'
                         ORDER BY tt_id DESC
                     ";
-                            $data = Q_array($sql);
-                            foreach ($data as $key => $val) { ?>
-                                <tr>
-                                    <td><?php echo $key + 1; ?></td>
-                                    <td><?php echo $val['tt_no_id']; ?></td>
-                                    <td><?php echo $val['tu_full_name']; ?> <br> <?php echo $val['tu_email']; ?></td>
-                                    <td><?php echo $val['tt_subject']; ?></td>
-                                    <td><?php echo $val['td_name']; ?></td>
+                    $data = Q_array($sql);
+                    foreach ($data as $key => $val) { ?>
+                        <tbody>
+                            <tr>
+                                <td><?php echo $key + 1; ?></td>
+                                <td><?php echo $val['tt_no_id']; ?></td>
+                                <td><?php echo $val['tu_full_name']; ?> <br> <?php echo $val['tu_email']; ?></td>
+                                <td><?php echo $val['tt_subject']; ?></td>
+                                <td><?php echo $val['ts_name']; ?></td>
+                                <td><?php echo $val['td_name']; ?></td>
+                                <td><?php echo $val['tp_name']; ?></td>
+                                <td><?php echo $val['tt_message']; ?></td>
+                                <?php
+                                // Handle status and assign class
+                                $statusClass = "status-default"; // Default class
+                                switch ($val['tt_status']) {
+                                    case 'NEW':
+                                        $statusClass = "status-new";
+                                        break;
+                                    case 'PROCCESS':
+                                        $statusClass = "status-process";
+                                        break;
+                                    case 'PENDING':
+                                        $statusClass = "status-pending";
+                                        break;
+                                    case 'CANCEL':
+                                        $statusClass = "status-cancel";
+                                        break;
+                                    case 'DONE':
+                                        $statusClass = "status-done";
+                                        break;
+                                }
+                                ?>
+                                <td class="<?php echo $statusClass; ?>"><?php echo htmlspecialchars($val['tt_status']); ?></td>
+                                <td><?php echo date("d F Y", strtotime($val['tt_created'])); ?><br><?php echo date("H:i:s A", strtotime($val['tt_created'])); ?></td>
+                                <td><?php
+
+                                    // Cek apakah $val['tt_updated'] ada dan tidak null
+
+                                    if (!empty($val['tt_updated'])) {
+
+                                        // Jika ada, konversi dan tampilkan tanggal dan waktu
+
+                                        $timestamp = strtotime($val['tt_updated']);
+
+                                        if ($timestamp !== false) {
+
+                                            echo date("d F Y", $timestamp) . "<br>";
+
+                                            echo date("H:i:s A", $timestamp);
+                                        } else {
+
+                                            // Jika format tanggal tidak valid
+
+                                            echo "Format tanggal tidak valid.";
+                                        }
+                                    } else {
+
+                                        // Jika $val['tt_updated'] null atau kosong, tampilkan kosong
+
+                                        echo "-"; // jika tidak ada foto menampilkan kosong
+
+                                    }
+
+                                    ?></td>
+                                <td><?php echo $val['tt_duration']; ?></td>
+                                <td><?php echo ($val['tt_problem_solving']); ?></td>
+
+                                <!-- KOLOM BEFORE - TAMPILKAN FOTO BEFORE -->
+                                <td style="text-align: center;">
                                     <?php
-                                    // Handle status and assign class
-                                    $statusClass = "status-default"; // Default class
-                                    switch ($val['tt_status']) {
-                                        case 'NEW':
-                                            $statusClass = "status-new";
-                                            break;
-                                        case 'PROCCESS':
-                                            $statusClass = "status-process";
-                                            break;
-                                        case 'PENDING':
-                                            $statusClass = "status-pending";
-                                            break;
-                                        case 'CANCEL':
-                                            $statusClass = "status-cancel";
-                                            break;
-                                        case 'DONE':
-                                            $statusClass = "status-done";
-                                            break;
+                                    if (!empty($val['tt_foto_before'])) {
+                                        echo '<a href="' . $val['tt_foto_before'] . '" target="_blank" title="Klik untuk lihat ukuran penuh">';
+                                        echo '<img src="' . $val['tt_foto_before'] . '" alt="Foto Before" class="foto-thumbnail">';
+                                        echo '</a>';
+                                    } else {
+                                        echo '-';
                                     }
                                     ?>
-                                    <td class="<?php echo $statusClass; ?>"><?php echo htmlspecialchars($val['tt_status']); ?></td>
+                                </td>
 
-                                    <td><?php echo $val['tt_duration']; ?></td>
-                                    <td><?php echo $val['tt_message']; ?></td>
-                                    <td><?php echo ($val['tt_problem_solving']); ?></td>
-                                <?php } ?>
-                                </tr>
+                                <!-- KOLOM AFTER -->
+                                <td style="text-align: center;">
+                                    <?php
+                                    if (!empty($val['tt_foto_after'])) {
+                                        echo '<a href="' . $val['tt_foto_after'] . '" target="_blank" title="Klik untuk lihat ukuran penuh">';
+                                        echo '<img src="' . $val['tt_foto_after'] . '" alt="Foto After" class="foto-thumbnail">';
+                                        echo '</a>';
+                                    } else {
+                                        echo '-';
+                                    }
+                                    ?>
+                                </td>
+
+                                <td>
+                                    <a class='btn btn-default' data-toggle='modal' data-target='#ed-<?php echo $key; ?>'>Option</a>
+                                </td>
+                            </tr>
                         </tbody>
 
 
-                    </table>
-                </div>
+                        <div id="ed-<?php echo $key; ?>" class="modal fade" role="dialog">
+                            <div class="modal-dialog" style="background-color:#FFFFFF;">
+                                <form class="modal-content" action="function.php" method="POST" enctype="multipart/form-data">
+                                    <div class="modal-header">
+                                        <button type="button" class="close" data-dismiss="modal">&times;</button>
+                                        <h4 class="modal-title">Change status <?php echo $val['tt_subject']; ?></h4>
+                                    </div>
+                                    <div class="modal-body">
+                                        <div class="row">
+                                            <div class="col-md-12 form-group">
+                                                <label for="">Status:</label>
+                                                <select name="status" class="form-control" required="true">
+                                                    <option value="<?php echo $val['tt_status']; ?>">SELECTED : <?php echo $val['tt_status']; ?></option>
+                                                    <option value="NEW">NEW</option>
+                                                    <option value="PROCCESS">PROCCESS</option>
+                                                    <option value="PENDING">PENDING</option>
+                                                    <option value="CANCEL">CANCEL</option>
+                                                    <option value="DONE">DONE</option>
+                                                    <option value="DELETE">DELETE</option>
+                                                </select>
+                                                <br>
+                                                <label for="">Problem Solving:</label>
+                                                <textarea class="form-control" name="problem-solving" placeholder="Problem solving" rows="4"><?php echo $val['tt_problem_solving']; ?></textarea>
+                                                <input type="hidden" name="id" value="<?php echo $val['tt_id']; ?>">
+
+                                                <br>
+                                                <label for="">Foto After (Max 2MB):</label>
+                                                <input type="file" name="tt_foto_after" class="form-control" accept="image/*">
+                                                <small class="text-muted">Format: JPG, PNG, GIF</small>
+
+                                                <?php
+                                                // Tampilkan foto before sebagai referensi
+                                                if (!empty($val['tt_foto_before'])) {
+                                                    echo '<div class="mt-3">';
+                                                    echo '<label>Foto Before (Referensi):</label><br>';
+                                                    echo '<img src="' . $val['tt_foto_before'] . '" alt="Foto Before" style="max-width: 200px; height: auto; border: 1px solid #ddd; border-radius: 4px; padding: 5px;">';
+                                                    echo '</div>';
+                                                }
+
+                                                // Tampilkan foto after yang sudah ada (jika ada)
+                                                if (!empty($val['tt_foto_after'])) {
+                                                    echo '<div class="mt-3">';
+                                                    echo '<label>Foto After (Saat ini):</label><br>';
+                                                    echo '<img src="' . $val['tt_foto_after'] . '" alt="Foto After" style="max-width: 200px; height: auto; border: 1px solid #ddd; border-radius: 4px; padding: 5px;">';
+                                                    echo '<br><small class="text-muted">Upload foto baru untuk mengganti</small>';
+                                                    echo '</div>';
+                                                }
+                                                ?>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="modal-footer">
+                                        <button type="submit" name="update-tl" class="btn btn-primary">Update</button>
+                                        <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    <?php } ?>
+                </table>
             </div>
         </div>
-    </main>
-
     </div>
-    </div>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js" crossorigin="anonymous"></script>
-    <script src="js/scripts.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/simple-datatables@7.1.2/dist/umd/simple-datatables.min.js" crossorigin="anonymous"></script>
-    <script src="js/datatables-simple-demo.js"></script>
-</body>
+    <script>
+        $(document).ready(function() {
+            $('#dataTable').DataTable({
+                "pageLength": 10, // Default number of rows per page
+                "lengthMenu": [10, 25, 50, 100] // Options for number of rows per page
+            });
+        });
+    </script>
+</div>
 
-</html>
+
+<?php include('footer.php'); ?>
