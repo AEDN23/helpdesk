@@ -3,17 +3,18 @@
     <div class="modal-dialog">
         <form class="modal-content" method="post">
             <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal">&times;</button>
                 <h4 class="modal-title">Login</h4>
             </div>
             <div class="modal-body">
                 <div class="row" style="margin-left:35px;margin-right:35px;">
                     <div class="col-md-12 form-group">
                         <label for="">USERNAME:</label>
-                        <input type="text" name="username" class="form-control" value="customer">
+                        <input type="text" name="username" class="form-control">
                     </div>
                     <div class="col-md-12 form-group">
                         <label for="">PASSWORD:</label>
-                        <input type="password" name="password" class="form-control" value="123">
+                        <input type="password" name="password" class="form-control">
                     </div>
                 </div>
             </div>
@@ -24,30 +25,25 @@
             </div>
         </form>
     </div>
+
 </div>
-
-<br>
-<br>
-<br>
-<br>
-
-<footer>&copy; PT Elastomix Indonesia | HELPDESK</footer>
-</body>
-
-</html>
-
 <?php
 if (isset($_POST['login'])) {
     $user = Q_mres($_POST['username']);
     $pass = Q_mres(md5($_POST['password']));
-    $result = Q_array("SELECT * FROM tbl_user WHERE tu_user='$user' AND tu_pass='$pass' AND tu_role='customer'");
+    $result = Q_array("SELECT * FROM tbl_user WHERE tu_user='$user' AND tu_pass='$pass' AND tu_role='admin'");
     if (count($result) > 0) {
         $_SESSION['login'] = true;
         $_SESSION['datauser'] = $result[0];
-        echo "<script>alert('Login berhasil!');</script>";
-        echo "<script>window.location.href = '" . site_url(true) . "';</script>";
-    } else {
-        echo "<script>alert('Login gagal! Username atau password salah.');</script>";
     }
+    redirect_to(site_url(true));
 }
+
 ?>
+
+<br>
+<br>
+<br>
+</body>
+
+</html>

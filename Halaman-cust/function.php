@@ -53,6 +53,42 @@ if (isset($_POST['update-tl'])) {
     $b = Q_mres($_POST['id']); // ID tiket
     $c = Q_mres($_POST['problem-solving']); // Problem solving
 
+    // Handle file upload untuk foto after
+    $foto_after = '';
+
+    if (isset($_FILES['tt_foto_after']) && $_FILES['tt_foto_after']['error'] === UPLOAD_ERR_OK) {
+        $uploadDir = 'uploads/after/';
+
+        // Buat folder uploads jika belum ada
+        if (!is_dir($uploadDir)) {
+            mkdir($uploadDir, 0777, true);
+        }
+
+        $fileExtension = pathinfo($_FILES['tt_foto_after']['name'], PATHINFO_EXTENSION);
+        $allowedExtensions = ['jpg', 'jpeg', 'png', 'gif'];
+
+        // Validasi ekstensi file
+        if (in_array(strtolower($fileExtension), $allowedExtensions)) {
+            // Validasi ukuran file (max 2MB)
+            if ($_FILES['tt_foto_after']['size'] <= 2 * 1024 * 1024) {
+                // Generate unique filename
+                $filename = 'foto_after_' . time() . '_' . uniqid() . '.' . $fileExtension;
+                $uploadPath = $uploadDir . $filename;
+
+                // Pindahkan file ke folder uploads
+                if (move_uploaded_file($_FILES['tt_foto_after']['tmp_name'], $uploadPath)) {
+                    $foto_after = $uploadPath;
+                } else {
+                    echo "<script>alert('Gagal mengupload foto after!');</script>";
+                }
+            } else {
+                echo "<script>alert('Ukuran file foto after terlalu besar! Maksimal 2MB.');</script>";
+            }
+        } else {
+            echo "<script>alert('Format file foto after tidak didukung! Gunakan JPG, PNG, atau GIF.');</script>";
+        }
+    }
+
     // Waktu Jakarta (WIB)
     date_default_timezone_set('Asia/Jakarta');
     $updatedTime = date('Y-m-d H:i:s'); // Waktu sekarang WIB
@@ -83,32 +119,36 @@ if (isset($_POST['update-tl'])) {
         }
     }
 
-    // Update database dengan tt_updated dan tt_duration
-    $sql = "UPDATE tbl_ticket SET 
-                tt_status='$a', 
-                tt_problem_solving='$c', 
-                tt_updated='$updatedTime', 
-                tt_duration='$duration' 
-            WHERE tt_id='$b'";
+    // Update database dengan tt_updated, tt_duration, dan tt_foto_after
+    if (!empty($foto_after)) {
+        // Jika ada foto after yang diupload
+        $sql = "UPDATE tbl_ticket SET 
+                    tt_status='$a', 
+                    tt_problem_solving='$c', 
+                    tt_updated='$updatedTime', 
+                    tt_duration='$duration',
+                    tt_foto_after='$foto_after' 
+                WHERE tt_id='$b'";
+    } else {
+        // Jika tidak ada foto after yang diupload
+        $sql = "UPDATE tbl_ticket SET 
+                    tt_status='$a', 
+                    tt_problem_solving='$c', 
+                    tt_updated='$updatedTime', 
+                    tt_duration='$duration' 
+                WHERE tt_id='$b'";
+    }
 
     if (Q_execute($sql)) {
+        echo "<script>alert('Ticket berhasil diupdate!');</script>";
         redirect_to("ticket-list.php");
+    } else {
+        echo "<script>alert('Gagal mengupdate ticket!');</script>";
     }
 }
-
-
-
-
-
 ?>
 <!-- TICKET-LIST.PHP END -->
-
-
-
-
-
-
-
+<!-- TICKET-LIST.PHP END -->
 
 <!-- SERVICE.PHP START -->
 <?php
@@ -211,16 +251,3 @@ if (isset($_POST['delete-dept'])) {
 }
 ?>
 <!-- DEPARTEMENT.PHP END -->
-
-<?php
-if (isset($_POST['login'])) {
-    $user = Q_mres($_POST['username']);
-    $pass = Q_mres(md5($_POST['password']));
-    $result = Q_array("SELECT * FROM tbl_user WHERE tu_user='$user' AND tu_pass='$pass' AND tu_role='customer'");
-    if (count($result) > 0) {
-        $_SESSION['login'] = true;
-        $_SESSION['datauser'] = $result[0];
-    }
-    redirect_to(site_url(true));
-}
-?>

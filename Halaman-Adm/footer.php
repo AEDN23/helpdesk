@@ -30,7 +30,7 @@
 <?php
 if (isset($_POST['login'])) {
     $user = Q_mres($_POST['username']);
-    $pass = Q_mres(md5($_POST['password'])); 
+    $pass = Q_mres(md5($_POST['password']));
     $result = Q_array("SELECT * FROM tbl_user WHERE tu_user='$user' AND tu_pass='$pass' AND tu_role='admin'");
     if (count($result) > 0) {
         $_SESSION['login'] = true;
